@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Кот</title>
+	<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='85' font-size='85' text-anchor='middle' fill='%23f39c12'%3E🐱%3C/text%3E%3C/svg%3E">
     <style>
         * {
             margin: 0;
@@ -302,6 +303,63 @@
             opacity: 0.7;
             color: #6f4f2e;
         }
+
+        /* модальное окно */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: 0.2s;
+        }
+        .modal-overlay.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        .modal-window {
+            background: #fff6ea;
+            border-radius: 50px;
+            padding: 25px;
+            max-width: 320px;
+            text-align: center;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.3);
+            border: 2px solid #e6c99c;
+        }
+        .modal-window p {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            color: #4a2e1a;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        .modal-btn {
+            padding: 8px 20px;
+            border-radius: 40px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .modal-cancel {
+            background: #b48c5c;
+            color: white;
+        }
+        .modal-confirm {
+            background: #c0392b;
+            color: white;
+        }
+        .modal-btn:active { transform: scale(0.96); }
     </style>
 </head>
 <body>
@@ -362,6 +420,17 @@
     <footer>🐱 Кот сам решает, когда спать. Во сне не двигается, кнопки не работают. Статы падают раз в 15 минут (офлайн тоже).</footer>
 </div>
 
+<!-- Модальное окно подтверждения сброса -->
+<div id="resetModal" class="modal-overlay">
+    <div class="modal-window">
+        <p>⚠️ Точно сбросить кота?<br>Весь прогресс (статы, возраст, достижения, скин, фон) будет удалён навсегда.</p>
+        <div class="modal-buttons">
+            <button class="modal-btn modal-cancel" id="modalCancelBtn">❌ Отмена</button>
+            <button class="modal-btn modal-confirm" id="modalConfirmBtn">✅ Да, сбросить</button>
+        </div>
+    </div>
+</div>
+
 <script>
     // ---------- СОСТОЯНИЕ ----------
     let hunger = 80, mood = 80, sickness = 0, toilet = 20, discipline = 50;
@@ -378,9 +447,9 @@
     let degradeInterval = null, clockInterval = null, walkingInterval = null;
     let lastSaveTime = Date.now();
 
-    // ---------- НОВОЕ: скины и фоны ----------
+    // ---------- скины и фоны ----------
     const skinsList = ["🐱", "😺", "😸", "😻", "😽", "🙀", "😿", "😾"];
-    let currentSkinIndex = 0;        // индекс текущего скина
+    let currentSkinIndex = 0;
     let currentSkin = skinsList[0];
 
     const backgroundsList = [
@@ -392,7 +461,6 @@
         { id: "sakura", name: "🌸 Сакура", style: "linear-gradient(145deg, #f7d9e8 0%, #f0c4d8 100%)" }
     ];
     let currentBgIndex = 0;
-    let currentBackground = backgroundsList[0];
 
     // DOM
     const hungerFill = document.getElementById('hungerFill');
@@ -430,39 +498,32 @@
     const praiseBtn = document.getElementById('praiseBtn');
     const resetBtn = document.getElementById('resetBtn');
 
+    // Модальное окно
+    const modal = document.getElementById('resetModal');
+    const modalCancel = document.getElementById('modalCancelBtn');
+    const modalConfirm = document.getElementById('modalConfirmBtn');
+
     // ========== ФУНКЦИИ ДЛЯ СКИНОВ И ФОНОВ ==========
     function applySkin() {
         currentSkin = skinsList[currentSkinIndex];
         if (walkingCatSpan) walkingCatSpan.innerText = currentSkin;
-        // сохраняем
         localStorage.setItem('cat_skin_index', currentSkinIndex);
     }
-
     function cycleSkin() {
-        if (isSleeping) return; // во сне не меняем внешность (можно разрешить, но пусть будет запрет)
+        if (isSleeping) return;
         currentSkinIndex = (currentSkinIndex + 1) % skinsList.length;
         applySkin();
     }
-
     function applyBackground() {
         const bg = backgroundsList[currentBgIndex];
-        if (bg && catZone) {
-            if (bg.style.includes('linear-gradient')) {
-                catZone.style.background = bg.style;
-            } else {
-                catZone.style.background = bg.style;
-            }
-        }
+        if (bg && catZone) catZone.style.background = bg.style;
         localStorage.setItem('cat_bg_index', currentBgIndex);
     }
-
     function cycleBackground() {
         if (isSleeping) return;
         currentBgIndex = (currentBgIndex + 1) % backgroundsList.length;
         applyBackground();
     }
-
-    // Загрузка сохранённых скина и фона
     function loadSkinAndBg() {
         const savedSkinIdx = localStorage.getItem('cat_skin_index');
         if (savedSkinIdx !== null) {
@@ -476,15 +537,14 @@
         }
     }
 
-    // ========== ДОСТИЖЕНИЯ ==========
+    // ========== ДОСТИЖЕНИЯ (полный список из вашего билда) ==========
     let achievements = [];
-
     function generateAchievements() {
         const list = [];
         function add(id, name, emoji, desc, conditionFunc) {
             list.push({ id, name, emoji, desc, condition: conditionFunc, completed: false, date: null });
         }
-        // 1-10: действия
+        // 1-10
         add(1, "Первый кормёж", "🍲", "Накормить кота 1 раз", () => feedCount >= 1);
         add(2, "Заботливый хозяин", "🍲🍲", "Накормить 10 раз", () => feedCount >= 10);
         add(3, "Король кормёжки", "🍲🍲🍲", "Накормить 50 раз", () => feedCount >= 50);
@@ -495,8 +555,7 @@
         add(8, "Айболит", "💊💊", "Вылечить 25 раз", () => healCount >= 25);
         add(9, "Санитар", "🚽", "Убрать туалет 10 раз", () => toiletCount >= 10);
         add(10, "Чистюля", "🧼", "Убрать туалет 50 раз", () => toiletCount >= 50);
-
-        // 11-20: похвала и дисциплина
+        // 11-20
         add(11, "Похвалитель", "⭐", "Похвалить 5 раз", () => praiseCount >= 5);
         add(12, "Воспитатель", "⭐⭐", "Похвалить 30 раз", () => praiseCount >= 30);
         add(13, "Мудрый наставник", "📖", "Похвалить 100 раз", () => praiseCount >= 100);
@@ -507,8 +566,7 @@
         add(18, "Мастер похвалы", "🌟", "Похвалить 200 раз", () => praiseCount >= 200);
         add(19, "Первая похвала", "👏", "Похвалить 1 раз", () => praiseCount >= 1);
         add(20, "Друг", "🤝", "Похвалить ≥50 и накормить ≥50", () => praiseCount >= 50 && feedCount >= 50);
-
-        // 21-30: здоровье
+        // 21-30
         add(21, "Здоровяк", "💪", "Болезнь ≤10, голод ≥70, настроение ≥70", () => sickness <= 10 && hunger >= 70 && mood >= 70);
         add(22, "Чих-чих", "🤧", "Болезнь ≥ 50", () => sickness >= 50);
         add(23, "Больничная палата", "🏥", "Болезнь ≥ 80", () => sickness >= 80);
@@ -519,8 +577,7 @@
         add(28, "Живучий", "🔥", "Болезнь ≥90 и лечение ≥1", () => sickness >= 90 && healCount >= 1);
         add(29, "Витаминка", "🍊", "Накормить ≥100 и болезнь ≤10", () => feedCount >= 100 && sickness <= 10);
         add(30, "Золотое здоровье", "✨", "Болезнь=0, голод≥90, настроение≥90", () => sickness === 0 && hunger >= 90 && mood >= 90);
-
-        // 31-40: голод и туалет
+        // 31-40
         add(31, "Голодный кот", "🍽️", "Голод ≤ 20", () => hunger <= 20);
         add(32, "Сытый кот", "😋", "Голод ≥ 80", () => hunger >= 80);
         add(33, "Обжора", "🍗🍗", "Накормить 200 раз", () => feedCount >= 200);
@@ -531,8 +588,7 @@
         add(38, "Проснулся и побежал", "🏃", "Туалет ≥80 и кот бодрствует", () => toilet >= 80 && !isSleeping);
         add(39, "Золотая середина", "🎯", "Голод 40-60, туалет 40-60", () => hunger >= 40 && hunger <= 60 && toilet >= 40 && toilet <= 60);
         add(40, "Кулинар", "👨‍🍳", "Накормить 500 раз", () => feedCount >= 500);
-
-        // 41-50: настроение
+        // 41-50
         add(41, "Грустный кот", "😿", "Настроение ≤ 20", () => mood <= 20);
         add(42, "Весёлый кот", "😺", "Настроение ≥ 80", () => mood >= 80);
         add(43, "Эйфория", "🌈", "Настроение ≥ 95", () => mood >= 95);
@@ -543,8 +599,7 @@
         add(48, "Танцующий кот", "💃", "Игр≥50 и настроение≥80", () => playCount >= 50 && mood >= 80);
         add(49, "Мурлыка", "🐱", "Настроение≥70 и похвал≥20", () => mood >= 70 && praiseCount >= 20);
         add(50, "Любимец", "👑", "Настроение≥95, похвал≥50, кормёж≥50", () => mood >= 95 && praiseCount >= 50 && feedCount >= 50);
-
-        // 51-60: возраст
+        // 51-60 возраст
         add(51, "Новорождённый", "👶", "Прожить 0 часов", () => true);
         add(52, "Котёнок", "🐱", "Прожить ≥24 часов", () => getAgeHours() >= 24);
         add(53, "Юный кот", "🧒", "Прожить ≥72 часов", () => getAgeHours() >= 72);
@@ -555,8 +610,7 @@
         add(58, "Легенда", "🌟", "Прожить ≥2880 часов (120 дней)", () => getAgeHours() >= 2880);
         add(59, "Бессмертный", "♾️", "Прожить ≥5000 часов", () => getAgeHours() >= 5000);
         add(60, "Машина времени", "⏳", "Прожить ≥10000 часов", () => getAgeHours() >= 10000);
-
-        // 61-70: сон
+        // 61-70 сон
         add(61, "Первая дрёма", "😴", "Кот заснул 1 раз", () => sleepCycleCount >= 1);
         add(62, "Соня", "💤", "Кот заснул 10 раз", () => sleepCycleCount >= 10);
         add(63, "Спящая красавица", "👸", "Кот заснул 30 раз", () => sleepCycleCount >= 30);
@@ -567,8 +621,7 @@
         add(68, "Любитель вздремнуть", "🛌", "Суммарно спал ≥12 часов", () => getTotalSleepTime() >= 12 * 60 * 60 * 1000);
         add(69, "Спящий гигант", "🐻", "Суммарно спал ≥48 часов", () => getTotalSleepTime() >= 48 * 60 * 60 * 1000);
         add(70, "Цикл сна", "🔄", "Кот заснул 200 раз", () => sleepCycleCount >= 200);
-
-        // 71-80: комбо
+        // 71-80 комбо
         add(71, "Золотые руки", "🖐️", "100 кормёж, 100 игр, 50 леч, 50 уборок, 50 похвал", () => feedCount>=100 && playCount>=100 && healCount>=50 && toiletCount>=50 && praiseCount>=50);
         add(72, "Совершенство", "💎", "Голод≥90, настроение≥90, болезнь≤5, туалет≤10, дисциплина≥80", () => hunger>=90 && mood>=90 && sickness<=5 && toilet<=10 && discipline>=80);
         add(73, "Проблемный кот", "⚠️", "Голод≤10 или настроение≤10 или болезнь≥70 или туалет≥90", () => hunger<=10 || mood<=10 || sickness>=70 || toilet>=90);
@@ -579,8 +632,7 @@
         add(78, "Миллионер", "💰", "Совершить 10000 действий", () => totalActions >= 10000);
         add(79, "Лучший друг", "💕", "500 похвал и 500 кормёж", () => praiseCount>=500 && feedCount>=500);
         add(80, "Икона стиля", "👔", "Дисциплина≥90 и туалет≤10", () => discipline>=90 && toilet<=10);
-
-        // 81-90: экстремальные
+        // 81-90 экстремальные
         add(81, "Голодная смерть", "⚰️", "Голод ≤ 0", () => hunger <= 0);
         add(82, "Без сил", "😵", "Настроение ≤ 0", () => mood <= 0);
         add(83, "Кома", "💀", "Болезнь ≥ 100", () => sickness >= 100);
@@ -591,8 +643,7 @@
         add(88, "Путешественник", "🧳", "Прожить ≥2000 часов", () => getAgeHours() >= 2000);
         add(89, "Легендарный хранитель", "🏅", "Совершить 20000 действий", () => totalActions >= 20000);
         add(90, "Абсолют", "🔱", "Голод≥99, настроение≥99, болезнь=0, туалет≤1, дисциплина≥99", () => hunger>=99 && mood>=99 && sickness===0 && toilet<=1 && discipline>=99);
-
-        // 91-100: финальные
+        // 91-100
         add(91, "Первое прикосновение", "👋", "Запустить игру", () => true);
         add(92, "Добро пожаловать", "🎉", "Запустить игру", () => true);
         add(93, "Терпеливый", "⏱️", "Прожить ≥100 часов", () => getAgeHours() >= 100);
@@ -712,7 +763,7 @@
         }
     }
 
-    // ========== ОСТАЛЬНАЯ ЛОГИКА ==========
+    // ========== ОСНОВНАЯ ЛОГИКА ==========
     function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
     function formatNumber(v) { return Math.floor(v); }
 
@@ -727,7 +778,6 @@
         sicknessVal.innerText = formatNumber(sickness);
         toiletVal.innerText = formatNumber(toilet);
         disciplineVal.innerText = formatNumber(discipline);
-
         let statusIcon = "🐱";
         if (isSleeping) statusIcon = "😴";
         else if (sickness >= 70) statusIcon = "😿";
@@ -849,7 +899,14 @@
     function useToilet() { if (!isSleeping) { toilet = clamp(toilet - 45, 0, 100); mood = clamp(mood + 4, 0, 100); toiletCount++; totalActions++; updateUI(); saveToLocalStorage(); checkAchievements(); updateAchievementsProgress(); } }
     function praise() { if (!isSleeping) { discipline = clamp(discipline + 18, 0, 100); mood = clamp(mood + 5, 0, 100); praiseCount++; totalActions++; updateUI(); saveToLocalStorage(); checkAchievements(); updateAchievementsProgress(); } }
 
-    function resetGame() {
+    // Сброс с подтверждением
+    function showResetConfirm() {
+        modal.classList.add('show');
+    }
+    function hideResetModal() {
+        modal.classList.remove('show');
+    }
+    function performReset() {
         if (window.sleepTimeout) clearTimeout(window.sleepTimeout);
         if (window.nextAwakeTimeout) clearTimeout(window.nextAwakeTimeout);
         if (walkingInterval) clearInterval(walkingInterval);
@@ -861,6 +918,11 @@
         totalSleepTimeMs = 0; totalAwakeTimeMs = 0; sleepCycleCount = 0; lastStateChangeTime = Date.now();
         achievements.forEach(a => { a.completed = false; a.date = null; });
         saveAchievements();
+        // Сброс скина и фона на стандартные
+        currentSkinIndex = 0;
+        currentBgIndex = 0;
+        applySkin();
+        applyBackground();
         const awakeDuration = getRandomAwakeDuration();
         nextAwakeEndTime = Date.now() + awakeDuration;
         window.nextAwakeTimeout = setTimeout(() => startSleep(), awakeDuration);
@@ -871,6 +933,7 @@
         checkAchievements();
         renderAchievementsList();
         updateAchievementsProgress();
+        hideResetModal();
     }
 
     function saveToLocalStorage() {
@@ -936,7 +999,7 @@
     function init() {
         achievements = generateAchievements();
         loadAchievements();
-        loadSkinAndBg();          // загружаем сохранённый скин и фон
+        loadSkinAndBg();
         startDegradeInterval();
         clockInterval = setInterval(updateRealTime, 1000);
         updateRealTime();
@@ -950,11 +1013,15 @@
             updateUI();
         }
         lastStateChangeTime = Date.now();
-        feedBtn.onclick = feed; playBtn.onclick = play; healBtn.onclick = heal; toiletBtn.onclick = useToilet; praiseBtn.onclick = praise; resetBtn.onclick = resetGame;
+        feedBtn.onclick = feed; playBtn.onclick = play; healBtn.onclick = heal; toiletBtn.onclick = useToilet; praiseBtn.onclick = praise;
+        resetBtn.onclick = showResetConfirm;
         editNameBtn.onclick = editName;
         changeSkinBtn.onclick = cycleSkin;
         changeBgBtn.onclick = cycleBackground;
         achievementsToggleBtn.onclick = () => achievementsPanel.classList.toggle('open');
+        modalCancel.onclick = hideResetModal;
+        modalConfirm.onclick = performReset;
+        modal.onclick = (e) => { if (e.target === modal) hideResetModal(); };
         checkAchievements();
         updateAchievementsProgress();
     }
