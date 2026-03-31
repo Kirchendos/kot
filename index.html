@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Tamagotchi · достижения + смена фона и внешности</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(145deg, #1e3c2c 0%, #2a4a35 100%);
+            font-family: 'Segoe UI', 'Quicksand', system-ui, -apple-system, 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .tamagotchi-card {
+            max-width: 700px;
+            width: 100%;
+            background: rgba(255, 248, 225, 0.96);
+            backdrop-filter: blur(2px);
+            border-radius: 68px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+            padding: 20px 24px 30px;
+            border: 1px solid #f9e2a1;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: #fdf3e0;
+            padding: 12px 18px;
+            border-radius: 60px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 1px 4px #0001, 0 4px 8px #0001;
+        }
+        .real-time {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: monospace;
+            background: #2e241f;
+            padding: 4px 16px;
+            border-radius: 50px;
+            color: #f9e2a1;
+        }
+        .age-stats {
+            background: #e6d5b8;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: #4a2e1a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-area {
+            background: #b48c5c;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-emoji { font-size: 1.2rem; }
+
+        .cat-zone {
+            background: #ffe6c7;
+            border-radius: 68px;
+            padding: 20px 15px;
+            margin-bottom: 25px;
+            box-shadow: inset 0 0 0 3px #fff8, 0 12px 20px rgba(0, 0, 0, 0.1);
+            min-height: 240px;
+            transition: background 0.3s;
+        }
+        .walking-container {
+            position: relative;
+            height: 140px;
+            margin-bottom: 15px;
+            background: rgba(255,235,205,0.5);
+            border-radius: 50px;
+            overflow: hidden;
+        }
+        .walking-cat {
+            position: absolute;
+            font-size: 3rem;
+            transition: left 0.3s ease, top 0.3s ease;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+            pointer-events: none;
+        }
+        .name-editor {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 5px;
+        }
+        .cat-name {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: #fae8cf;
+            padding: 6px 20px;
+            border-radius: 40px;
+            color: #633d1e;
+        }
+        .edit-btn {
+            background: #f5e2c1;
+            border: none;
+            font-size: 1.4rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px #0001;
+        }
+        .edit-btn:active { transform: scale(0.94); }
+        .name-input {
+            font-size: 1.3rem;
+            padding: 6px 15px;
+            border-radius: 40px;
+            border: 2px solid #b48c5c;
+            background: #fffef7;
+            text-align: center;
+            font-weight: bold;
+            width: 200px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px 20px;
+            margin: 20px 0;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #fff6ea;
+            padding: 6px 12px;
+            border-radius: 50px;
+            box-shadow: inset 0 1px 2px #fff8, 0 2px 5px #0001;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .stat-item:active { transform: scale(0.98); }
+        .stat-label {
+            width: 48px;
+            font-size: 1.7rem;
+            text-align: center;
+        }
+        .stat-bar-container {
+            flex: 1;
+            height: 20px;
+            background-color: #ecd9c2;
+            border-radius: 30px;
+            overflow: hidden;
+        }
+        .stat-bar {
+            width: 100%;
+            height: 100%;
+            border-radius: 30px;
+            transition: width 0.2s;
+        }
+        .stat-value {
+            min-width: 48px;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 0.9rem;
+            text-align: right;
+        }
+        .achievement-btn {
+            background: #c7a46b;
+            color: white;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .achievement-btn .stat-label { font-size: 1.5rem; }
+        .achievement-btn .stat-value { font-weight: bold; color: white; }
+
+        .hunger-bar { background: #f39c12; }
+        .mood-bar { background: #e84393; }
+        .sickness-bar { background: #c0392b; }
+        .toilet-bar { background: #8e44ad; }
+        .discipline-bar { background: #16a085; }
+
+        .achievements-panel {
+            background: #fff6ea;
+            border-radius: 40px;
+            padding: 15px;
+            margin-top: 10px;
+            display: none;
+            box-shadow: inset 0 1px 3px #0001, 0 5px 12px rgba(0,0,0,0.1);
+        }
+        .achievements-panel.open { display: block; }
+        .achievements-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e6c99c;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+        .achievements-progress {
+            font-size: 0.85rem;
+            background: #e6d5b8;
+            padding: 4px 12px;
+            border-radius: 30px;
+        }
+        .actions-counter {
+            font-size: 0.8rem;
+            background: #f5e2c1;
+            padding: 4px 12px;
+            border-radius: 30px;
+            color: #4a2e1a;
+        }
+        .achievements-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        .achievement-item {
+            display: flex;
+            flex-direction: column;
+            background: #fffef7;
+            padding: 8px 12px;
+            border-radius: 30px;
+            border: 1px solid #ecd9c2;
+        }
+        .achievement-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .achievement-emoji { font-size: 1.4rem; min-width: 40px; text-align: center; }
+        .achievement-name { flex: 1; font-weight: 600; color: #4a2e1a; }
+        .achievement-status { font-size: 1.1rem; min-width: 70px; text-align: right; color: #2e7d32; }
+        .achievement-date { font-size: 0.7rem; color: #8b6b42; min-width: 85px; text-align: right; }
+        .achievement-desc {
+            font-size: 0.7rem;
+            color: #ad6b35;
+            margin-left: 52px;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+            margin: 20px 0 15px;
+            flex-wrap: wrap;
+        }
+        .action-btn {
+            background: #f5e2c1;
+            border: none;
+            width: 70px;
+            height: 70px;
+            border-radius: 60px;
+            font-size: 2.2rem;
+            cursor: pointer;
+            transition: 0.1s linear;
+            box-shadow: 0 5px 8px #0002;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .action-btn:active { transform: scale(0.94); }
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(0.1);
+        }
+        .reset-btn { background: #ad6b35; color: white; font-size: 1.6rem; }
+        footer {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 18px;
+            opacity: 0.7;
+            color: #6f4f2e;
+        }
+    </style>
+</head>
+<body>
+<div class="tamagotchi-card">
+    <div class="header">
+        <div class="real-time" id="liveClock">--:--:--</div>
+        <div class="age-stats" id="ageDisplay">🐱 0 дн. 0 ч. 0 мин.</div>
+        <div class="status-area">
+            <span class="status-emoji" id="statusEmoji">🐾</span>
+            <span id="sleepStateText">бодрствует</span>
+        </div>
+    </div>
+
+    <div class="cat-zone" id="catZone">
+        <div class="walking-container" id="walkingContainer">
+            <div class="walking-cat" id="walkingCat">🐱</div>
+        </div>
+        <div class="name-editor">
+            <span class="cat-name" id="catNameDisplay">Мурзик</span>
+            <button class="edit-btn" id="editNameBtn">✏️</button>
+            <button class="edit-btn" id="changeSkinBtn">😺</button>
+            <button class="edit-btn" id="changeBgBtn">🎨</button>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-item"><div class="stat-label">🍗</div><div class="stat-bar-container"><div class="stat-bar hunger-bar" id="hungerFill"></div></div><div class="stat-value" id="hungerVal">80</div></div>
+        <div class="stat-item"><div class="stat-label">🎵</div><div class="stat-bar-container"><div class="stat-bar mood-bar" id="moodFill"></div></div><div class="stat-value" id="moodVal">80</div></div>
+        <div class="stat-item"><div class="stat-label">💊</div><div class="stat-bar-container"><div class="stat-bar sickness-bar" id="sicknessFill"></div></div><div class="stat-value" id="sicknessVal">0</div></div>
+        <div class="stat-item"><div class="stat-label">🚽</div><div class="stat-bar-container"><div class="stat-bar toilet-bar" id="toiletFill"></div></div><div class="stat-value" id="toiletVal">20</div></div>
+        <div class="stat-item"><div class="stat-label">📏</div><div class="stat-bar-container"><div class="stat-bar discipline-bar" id="disciplineFill"></div></div><div class="stat-value" id="disciplineVal">50</div></div>
+        <div class="stat-item achievement-btn" id="achievementsToggleBtn">
+            <div class="stat-label">🏆</div>
+            <div class="stat-value" id="achievementsPercentBadge">0%</div>
+        </div>
+    </div>
+
+    <div class="achievements-panel" id="achievementsPanel">
+        <div class="achievements-header">
+            <span>📜 Список достижений</span>
+            <div style="display: flex; gap: 10px;">
+                <span class="actions-counter" id="actionsCounter">🎯 Действий: 0</span>
+                <span class="actions-counter" id="sleepCounter">😴 Снов: 0</span>
+                <span class="achievements-progress" id="achievementsProgress">0/100 (0%)</span>
+            </div>
+        </div>
+        <div class="achievements-list" id="achievementsList"></div>
+    </div>
+
+    <div class="actions">
+        <button class="action-btn" id="feedBtn">🍲</button>
+        <button class="action-btn" id="playBtn">🎈</button>
+        <button class="action-btn" id="healBtn">💊</button>
+        <button class="action-btn" id="toiletBtn">🚽</button>
+        <button class="action-btn" id="praiseBtn">⭐</button>
+        <button class="action-btn reset-btn" id="resetBtn">🌀</button>
+    </div>
+    <footer>🐱 Кот сам решает, когда спать. Во сне не двигается, кнопки не работают. Статы падают раз в 15 минут (офлайн тоже).</footer>
+</div>
+
+<script>
+    // ---------- СОСТОЯНИЕ ----------
+    let hunger = 80, mood = 80, sickness = 0, toilet = 20, discipline = 50;
+    let birthTime = Date.now();
+    let isSleeping = false;
+    let sleepEndTime = null, nextAwakeEndTime = null;
+    let catName = "Мурзик";
+
+    let feedCount = 0, playCount = 0, healCount = 0, toiletCount = 0, praiseCount = 0;
+    let totalActions = 0;
+    let totalSleepTimeMs = 0, totalAwakeTimeMs = 0, sleepCycleCount = 0;
+    let lastStateChangeTime = Date.now();
+
+    let degradeInterval = null, clockInterval = null, walkingInterval = null;
+    let lastSaveTime = Date.now();
+
+    // ---------- НОВОЕ: скины и фоны ----------
+    const skinsList = ["🐱", "😺", "😸", "😻", "😽", "🙀", "😿", "😾"];
+    let currentSkinIndex = 0;        // индекс текущего скина
+    let currentSkin = skinsList[0];
+
+    const backgroundsList = [
+        { id: "default", name: "Стандартный", style: "#ffe6c7" },
+        { id: "forest", name: "🌲 Лес", style: "linear-gradient(145deg, #2d5a2c 0%, #1e3c2c 100%)" },
+        { id: "space", name: "🚀 Космос", style: "linear-gradient(145deg, #0b0b2b 0%, #1a1a4e 100%)" },
+        { id: "night", name: "🌙 Ночь", style: "linear-gradient(145deg, #1a2a3a 0%, #0f1a24 100%)" },
+        { id: "room", name: "🏠 Комната", style: "linear-gradient(145deg, #e8d5b5 0%, #d4b896 100%)" },
+        { id: "sakura", name: "🌸 Сакура", style: "linear-gradient(145deg, #f7d9e8 0%, #f0c4d8 100%)" }
+    ];
+    let currentBgIndex = 0;
+    let currentBackground = backgroundsList[0];
+
+    // DOM
+    const hungerFill = document.getElementById('hungerFill');
+    const moodFill = document.getElementById('moodFill');
+    const sicknessFill = document.getElementById('sicknessFill');
+    const toiletFill = document.getElementById('toiletFill');
+    const disciplineFill = document.getElementById('disciplineFill');
+    const hungerVal = document.getElementById('hungerVal');
+    const moodVal = document.getElementById('moodVal');
+    const sicknessVal = document.getElementById('sicknessVal');
+    const toiletVal = document.getElementById('toiletVal');
+    const disciplineVal = document.getElementById('disciplineVal');
+    const sleepStateText = document.getElementById('sleepStateText');
+    const ageDisplay = document.getElementById('ageDisplay');
+    const statusEmoji = document.getElementById('statusEmoji');
+    const walkingCatSpan = document.getElementById('walkingCat');
+    const walkingContainer = document.getElementById('walkingContainer');
+    const catNameDisplay = document.getElementById('catNameDisplay');
+    const editNameBtn = document.getElementById('editNameBtn');
+    const changeSkinBtn = document.getElementById('changeSkinBtn');
+    const changeBgBtn = document.getElementById('changeBgBtn');
+    const achievementsToggleBtn = document.getElementById('achievementsToggleBtn');
+    const achievementsPanel = document.getElementById('achievementsPanel');
+    const achievementsListDiv = document.getElementById('achievementsList');
+    const achievementsProgressSpan = document.getElementById('achievementsProgress');
+    const achievementsPercentBadge = document.getElementById('achievementsPercentBadge');
+    const actionsCounterSpan = document.getElementById('actionsCounter');
+    const sleepCounterSpan = document.getElementById('sleepCounter');
+    const catZone = document.getElementById('catZone');
+
+    const feedBtn = document.getElementById('feedBtn');
+    const playBtn = document.getElementById('playBtn');
+    const healBtn = document.getElementById('healBtn');
+    const toiletBtn = document.getElementById('toiletBtn');
+    const praiseBtn = document.getElementById('praiseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // ========== ФУНКЦИИ ДЛЯ СКИНОВ И ФОНОВ ==========
+    function applySkin() {
+        currentSkin = skinsList[currentSkinIndex];
+        if (walkingCatSpan) walkingCatSpan.innerText = currentSkin;
+        // сохраняем
+        localStorage.setItem('cat_skin_index', currentSkinIndex);
+    }
+
+    function cycleSkin() {
+        if (isSleeping) return; // во сне не меняем внешность (можно разрешить, но пусть будет запрет)
+        currentSkinIndex = (currentSkinIndex + 1) % skinsList.length;
+        applySkin();
+    }
+
+    function applyBackground() {
+        const bg = backgroundsList[currentBgIndex];
+        if (bg && catZone) {
+            if (bg.style.includes('linear-gradient')) {
+                catZone.style.background = bg.style;
+            } else {
+                catZone.style.background = bg.style;
+            }
+        }
+        localStorage.setItem('cat_bg_index', currentBgIndex);
+    }
+
+    function cycleBackground() {
+        if (isSleeping) return;
+        currentBgIndex = (currentBgIndex + 1) % backgroundsList.length;
+        applyBackground();
+    }
+
+    // Загрузка сохранённых скина и фона
+    function loadSkinAndBg() {
+        const savedSkinIdx = localStorage.getItem('cat_skin_index');
+        if (savedSkinIdx !== null) {
+            currentSkinIndex = parseInt(savedSkinIdx) % skinsList.length;
+            applySkin();
+        }
+        const savedBgIdx = localStorage.getItem('cat_bg_index');
+        if (savedBgIdx !== null) {
+            currentBgIndex = parseInt(savedBgIdx) % backgroundsList.length;
+            applyBackground();
+        }
+    }
+
+    // ========== ДОСТИЖЕНИЯ ==========
+    let achievements = [];
+
+    function generateAchievements() {
+        const list = [];
+        function add(id, name, emoji, desc, conditionFunc) {
+            list.push({ id, name, emoji, desc, condition: conditionFunc, completed: false, date: null });
+        }
+        // 1-10: действия
+        add(1, "Первый кормёж", "🍲", "Накормить кота 1 раз", () => feedCount >= 1);
+        add(2, "Заботливый хозяин", "🍲🍲", "Накормить 10 раз", () => feedCount >= 10);
+        add(3, "Король кормёжки", "🍲🍲🍲", "Накормить 50 раз", () => feedCount >= 50);
+        add(4, "Игровая пятёрка", "🎈", "Поиграть 5 раз", () => playCount >= 5);
+        add(5, "Любитель игр", "🎈🎈", "Поиграть 20 раз", () => playCount >= 20);
+        add(6, "Геймер", "🎮", "Поиграть 100 раз", () => playCount >= 100);
+        add(7, "Доктор", "💊", "Вылечить 5 раз", () => healCount >= 5);
+        add(8, "Айболит", "💊💊", "Вылечить 25 раз", () => healCount >= 25);
+        add(9, "Санитар", "🚽", "Убрать туалет 10 раз", () => toiletCount >= 10);
+        add(10, "Чистюля", "🧼", "Убрать туалет 50 раз", () => toiletCount >= 50);
+
+        // 11-20: похвала и дисциплина
+        add(11, "Похвалитель", "⭐", "Похвалить 5 раз", () => praiseCount >= 5);
+        add(12, "Воспитатель", "⭐⭐", "Похвалить 30 раз", () => praiseCount >= 30);
+        add(13, "Мудрый наставник", "📖", "Похвалить 100 раз", () => praiseCount >= 100);
+        add(14, "Дисциплинированный кот", "📏", "Дисциплина ≥ 80", () => discipline >= 80);
+        add(15, "Идеальная дисциплина", "🏆", "Дисциплина ≥ 95", () => discipline >= 95);
+        add(16, "Справедливый хозяин", "⚖️", "Дисциплина ≥ 70 и похвал ≥ 10", () => discipline >= 70 && praiseCount >= 10);
+        add(17, "Гармония", "☯️", "Дисциплина от 50 до 70", () => discipline >= 50 && discipline <= 70);
+        add(18, "Мастер похвалы", "🌟", "Похвалить 200 раз", () => praiseCount >= 200);
+        add(19, "Первая похвала", "👏", "Похвалить 1 раз", () => praiseCount >= 1);
+        add(20, "Друг", "🤝", "Похвалить ≥50 и накормить ≥50", () => praiseCount >= 50 && feedCount >= 50);
+
+        // 21-30: здоровье
+        add(21, "Здоровяк", "💪", "Болезнь ≤10, голод ≥70, настроение ≥70", () => sickness <= 10 && hunger >= 70 && mood >= 70);
+        add(22, "Чих-чих", "🤧", "Болезнь ≥ 50", () => sickness >= 50);
+        add(23, "Больничная палата", "🏥", "Болезнь ≥ 80", () => sickness >= 80);
+        add(24, "Выздоровление", "🌿", "Болезнь ≤10 и лечение ≥1", () => sickness <= 10 && healCount >= 1);
+        add(25, "Иммунитет", "🛡️", "Болезнь =0, голод≥80, настроение≥80", () => sickness === 0 && hunger >= 80 && mood >= 80);
+        add(26, "Лекарь", "💚", "Вылечить 50 раз", () => healCount >= 50);
+        add(27, "Скорая помощь", "🚑", "Лечение ≥10 при болезни ≥50", () => healCount >= 10 && sickness >= 50);
+        add(28, "Живучий", "🔥", "Болезнь ≥90 и лечение ≥1", () => sickness >= 90 && healCount >= 1);
+        add(29, "Витаминка", "🍊", "Накормить ≥100 и болезнь ≤10", () => feedCount >= 100 && sickness <= 10);
+        add(30, "Золотое здоровье", "✨", "Болезнь=0, голод≥90, настроение≥90", () => sickness === 0 && hunger >= 90 && mood >= 90);
+
+        // 31-40: голод и туалет
+        add(31, "Голодный кот", "🍽️", "Голод ≤ 20", () => hunger <= 20);
+        add(32, "Сытый кот", "😋", "Голод ≥ 80", () => hunger >= 80);
+        add(33, "Обжора", "🍗🍗", "Накормить 200 раз", () => feedCount >= 200);
+        add(34, "Диета", "🥗", "Голод ≤50 и кормёж ≥30", () => hunger <= 50 && feedCount >= 30);
+        add(35, "Туалетный кризис", "💩", "Туалет ≥ 90", () => toilet >= 90);
+        add(36, "Чистый лоток", "🧹", "Туалет ≤ 10", () => toilet <= 10);
+        add(37, "Идеальный туалет", "✨🚽", "Туалет ≤5 и уборок ≥20", () => toilet <= 5 && toiletCount >= 20);
+        add(38, "Проснулся и побежал", "🏃", "Туалет ≥80 и кот бодрствует", () => toilet >= 80 && !isSleeping);
+        add(39, "Золотая середина", "🎯", "Голод 40-60, туалет 40-60", () => hunger >= 40 && hunger <= 60 && toilet >= 40 && toilet <= 60);
+        add(40, "Кулинар", "👨‍🍳", "Накормить 500 раз", () => feedCount >= 500);
+
+        // 41-50: настроение
+        add(41, "Грустный кот", "😿", "Настроение ≤ 20", () => mood <= 20);
+        add(42, "Весёлый кот", "😺", "Настроение ≥ 80", () => mood >= 80);
+        add(43, "Эйфория", "🌈", "Настроение ≥ 95", () => mood >= 95);
+        add(44, "Депрессия", "🌧️", "Настроение ≤ 10", () => mood <= 10);
+        add(45, "Игроман", "🎲", "Поиграть 200 раз", () => playCount >= 200);
+        add(46, "Счастье есть", "💖", "Настроение≥90 и кормёж≥100", () => mood >= 90 && feedCount >= 100);
+        add(47, "Улыбнись", "😊", "Настроение≥50 и похвал≥10", () => mood >= 50 && praiseCount >= 10);
+        add(48, "Танцующий кот", "💃", "Игр≥50 и настроение≥80", () => playCount >= 50 && mood >= 80);
+        add(49, "Мурлыка", "🐱", "Настроение≥70 и похвал≥20", () => mood >= 70 && praiseCount >= 20);
+        add(50, "Любимец", "👑", "Настроение≥95, похвал≥50, кормёж≥50", () => mood >= 95 && praiseCount >= 50 && feedCount >= 50);
+
+        // 51-60: возраст
+        add(51, "Новорождённый", "👶", "Прожить 0 часов", () => true);
+        add(52, "Котёнок", "🐱", "Прожить ≥24 часов", () => getAgeHours() >= 24);
+        add(53, "Юный кот", "🧒", "Прожить ≥72 часов", () => getAgeHours() >= 72);
+        add(54, "Взрослый кот", "🧔", "Прожить ≥168 часов (7 дней)", () => getAgeHours() >= 168);
+        add(55, "Матерый", "👑", "Прожить ≥336 часов (14 дней)", () => getAgeHours() >= 336);
+        add(56, "Долгожитель", "🕰️", "Прожить ≥720 часов (30 дней)", () => getAgeHours() >= 720);
+        add(57, "Ветеран", "🎖️", "Прожить ≥1440 часов (60 дней)", () => getAgeHours() >= 1440);
+        add(58, "Легенда", "🌟", "Прожить ≥2880 часов (120 дней)", () => getAgeHours() >= 2880);
+        add(59, "Бессмертный", "♾️", "Прожить ≥5000 часов", () => getAgeHours() >= 5000);
+        add(60, "Машина времени", "⏳", "Прожить ≥10000 часов", () => getAgeHours() >= 10000);
+
+        // 61-70: сон
+        add(61, "Первая дрёма", "😴", "Кот заснул 1 раз", () => sleepCycleCount >= 1);
+        add(62, "Соня", "💤", "Кот заснул 10 раз", () => sleepCycleCount >= 10);
+        add(63, "Спящая красавица", "👸", "Кот заснул 30 раз", () => sleepCycleCount >= 30);
+        add(64, "Сова", "🦉", "Кот заснул 50 раз", () => sleepCycleCount >= 50);
+        add(65, "Ночной дозор", "🌙", "Кот заснул 100 раз", () => sleepCycleCount >= 100);
+        add(66, "Энерджайзер", "⚡", "Суммарно бодрствовал ≥24 часов", () => getTotalAwakeTime() >= 24 * 60 * 60 * 1000);
+        add(67, "Неутомимый", "🏃", "Суммарно бодрствовал ≥7 дней", () => getTotalAwakeTime() >= 7 * 24 * 60 * 60 * 1000);
+        add(68, "Любитель вздремнуть", "🛌", "Суммарно спал ≥12 часов", () => getTotalSleepTime() >= 12 * 60 * 60 * 1000);
+        add(69, "Спящий гигант", "🐻", "Суммарно спал ≥48 часов", () => getTotalSleepTime() >= 48 * 60 * 60 * 1000);
+        add(70, "Цикл сна", "🔄", "Кот заснул 200 раз", () => sleepCycleCount >= 200);
+
+        // 71-80: комбо
+        add(71, "Золотые руки", "🖐️", "100 кормёж, 100 игр, 50 леч, 50 уборок, 50 похвал", () => feedCount>=100 && playCount>=100 && healCount>=50 && toiletCount>=50 && praiseCount>=50);
+        add(72, "Совершенство", "💎", "Голод≥90, настроение≥90, болезнь≤5, туалет≤10, дисциплина≥80", () => hunger>=90 && mood>=90 && sickness<=5 && toilet<=10 && discipline>=80);
+        add(73, "Проблемный кот", "⚠️", "Голод≤10 или настроение≤10 или болезнь≥70 или туалет≥90", () => hunger<=10 || mood<=10 || sickness>=70 || toilet>=90);
+        add(74, "Тяжелый случай", "🔥", "Голод≤5, настроение≤5, болезнь≥90", () => hunger<=5 && mood<=5 && sickness>=90);
+        add(75, "Феникс", "🐦‍🔥", "Болезнь≥80, лечение≥5, голод≥70", () => sickness>=80 && healCount>=5 && hunger>=70);
+        add(76, "Мастер на все лапы", "🐾", "Совершить 1000 действий", () => totalActions >= 1000);
+        add(77, "Трудоголик", "💼", "Совершить 5000 действий", () => totalActions >= 5000);
+        add(78, "Миллионер", "💰", "Совершить 10000 действий", () => totalActions >= 10000);
+        add(79, "Лучший друг", "💕", "500 похвал и 500 кормёж", () => praiseCount>=500 && feedCount>=500);
+        add(80, "Икона стиля", "👔", "Дисциплина≥90 и туалет≤10", () => discipline>=90 && toilet<=10);
+
+        // 81-90: экстремальные
+        add(81, "Голодная смерть", "⚰️", "Голод ≤ 0", () => hunger <= 0);
+        add(82, "Без сил", "😵", "Настроение ≤ 0", () => mood <= 0);
+        add(83, "Кома", "💀", "Болезнь ≥ 100", () => sickness >= 100);
+        add(84, "Катастрофа", "💥", "Голод≤10, настроение≤10, болезнь≥80, туалет≥90", () => hunger<=10 && mood<=10 && sickness>=80 && toilet>=90);
+        add(85, "Восстание из пепла", "🌋", "Голод≤10 и хотя бы раз покормили", () => hunger<=10 && feedCount>=1);
+        add(86, "Исцеление", "🌱", "Болезнь≥80 и лечение≥5", () => sickness>=80 && healCount>=5);
+        add(87, "Долгая дорога", "🛤️", "Прожить ≥1000 часов", () => getAgeHours() >= 1000);
+        add(88, "Путешественник", "🧳", "Прожить ≥2000 часов", () => getAgeHours() >= 2000);
+        add(89, "Легендарный хранитель", "🏅", "Совершить 20000 действий", () => totalActions >= 20000);
+        add(90, "Абсолют", "🔱", "Голод≥99, настроение≥99, болезнь=0, туалет≤1, дисциплина≥99", () => hunger>=99 && mood>=99 && sickness===0 && toilet<=1 && discipline>=99);
+
+        // 91-100: финальные
+        add(91, "Первое прикосновение", "👋", "Запустить игру", () => true);
+        add(92, "Добро пожаловать", "🎉", "Запустить игру", () => true);
+        add(93, "Терпеливый", "⏱️", "Прожить ≥100 часов", () => getAgeHours() >= 100);
+        add(94, "Старожил", "🏠", "Прожить ≥500 часов", () => getAgeHours() >= 500);
+        add(95, "Золотой век", "🏆", "Голод≥80, настроение≥80, дисциплина≥80", () => hunger>=80 && mood>=80 && discipline>=80);
+        add(96, "Гармония жизни", "☯️", "Голод 70-90, настроение 70-90, дисциплина 70-90", () => hunger>=70 && hunger<=90 && mood>=70 && mood<=90 && discipline>=70 && discipline<=90);
+        add(97, "Всё включено", "🌟", "500 кормёж, 500 игр, 200 леч, 200 уборок, 200 похвал", () => feedCount>=500 && playCount>=500 && healCount>=200 && toiletCount>=200 && praiseCount>=200);
+        add(98, "Безупречный", "✨", "Все статы максимальны: голод=100, настроение=100, болезнь=0, туалет=0, дисциплина=100", () => hunger===100 && mood===100 && sickness===0 && toilet===0 && discipline===100);
+        add(99, "Непобедимый", "🛡️", "Прожить ≥5000 часов", () => getAgeHours() >= 5000);
+        add(100, "Великий тамагочи", "👑", "Совершить 50000 действий", () => totalActions >= 50000);
+        return list;
+    }
+
+    function getAgeHours() { return (Date.now() - birthTime) / (1000 * 60 * 60); }
+    function getTotalAwakeTime() { return totalAwakeTimeMs; }
+    function getTotalSleepTime() { return totalSleepTimeMs; }
+
+    function updateStateTimers() {
+        const now = Date.now();
+        if (isSleeping) totalSleepTimeMs += now - lastStateChangeTime;
+        else totalAwakeTimeMs += now - lastStateChangeTime;
+        lastStateChangeTime = now;
+    }
+
+    function checkAchievements() {
+        let changed = false;
+        achievements.forEach(ach => {
+            if (!ach.completed && ach.condition()) {
+                ach.completed = true;
+                ach.date = new Date().toLocaleString();
+                changed = true;
+            }
+        });
+        if (changed) {
+            saveAchievements();
+            renderAchievementsList();
+            updateAchievementsProgress();
+        }
+    }
+
+    function renderAchievementsList() {
+        achievementsListDiv.innerHTML = '';
+        achievements.forEach(ach => {
+            const div = document.createElement('div');
+            div.className = 'achievement-item';
+            div.innerHTML = `
+                <div class="achievement-row">
+                    <div class="achievement-emoji">${ach.emoji}</div>
+                    <div class="achievement-name">${ach.name}</div>
+                    <div class="achievement-status">${ach.completed ? '✅' : '🔒'}</div>
+                    <div class="achievement-date">${ach.completed ? ach.date : ''}</div>
+                </div>
+                <div class="achievement-desc">📌 ${ach.desc}</div>
+            `;
+            achievementsListDiv.appendChild(div);
+        });
+    }
+
+    function updateAchievementsProgress() {
+        const completed = achievements.filter(a => a.completed).length;
+        const percent = Math.floor((completed / achievements.length) * 100);
+        achievementsProgressSpan.innerText = `${completed}/${achievements.length} (${percent}%)`;
+        achievementsPercentBadge.innerText = `${percent}%`;
+        actionsCounterSpan.innerText = `🎯 Действий: ${totalActions}`;
+        sleepCounterSpan.innerText = `😴 Снов: ${sleepCycleCount}`;
+    }
+
+    function saveAchievements() {
+        const toSave = achievements.map(a => ({ id: a.id, completed: a.completed, date: a.date }));
+        localStorage.setItem('cat_achievements_fixed2', JSON.stringify(toSave));
+    }
+
+    function loadAchievements() {
+        const saved = localStorage.getItem('cat_achievements_fixed2');
+        if (saved) {
+            try {
+                const savedAchs = JSON.parse(saved);
+                savedAchs.forEach(sa => {
+                    const ach = achievements.find(a => a.id === sa.id);
+                    if (ach) { ach.completed = sa.completed; ach.date = sa.date; }
+                });
+            } catch(e) {}
+        }
+        renderAchievementsList();
+        updateAchievementsProgress();
+    }
+
+    // ========== ОФЛАЙН-ПРОГРЕСС ==========
+    function applyOfflineProgress() {
+        const now = Date.now();
+        const timeDiff = now - lastSaveTime;
+        if (timeDiff <= 0) return;
+        const intervals = Math.floor(timeDiff / 900000);
+        if (intervals > 0) {
+            for (let i = 0; i < Math.min(intervals, 1000); i++) {
+                if (!isSleeping) {
+                    hunger = clamp(hunger - 1, 0, 100);
+                    mood = clamp(mood - 1, 0, 100);
+                    toilet = clamp(toilet + 1, 0, 100);
+                    discipline = clamp(discipline - 0.2, 0, 100);
+                    let sicknessDelta = 0;
+                    if (hunger <= 20 || mood <= 20 || toilet >= 85) sicknessDelta = 0.6;
+                    else if (sickness > 0) sicknessDelta = -0.3;
+                    if (discipline < 30) sicknessDelta += 0.2;
+                    sickness = clamp(sickness + sicknessDelta, 0, 100);
+                    if (sickness >= 70) { hunger = clamp(hunger - 0.3, 0, 100); mood = clamp(mood - 0.4, 0, 100); }
+                    if (toilet > 95) mood = clamp(mood - 1, 0, 100);
+                    hunger = Math.floor(hunger * 10) / 10;
+                    mood = Math.floor(mood * 10) / 10;
+                    sickness = Math.floor(sickness * 10) / 10;
+                    toilet = Math.floor(toilet * 10) / 10;
+                    discipline = Math.floor(discipline * 10) / 10;
+                }
+            }
+            updateUI();
+            saveToLocalStorage();
+        }
+    }
+
+    // ========== ОСТАЛЬНАЯ ЛОГИКА ==========
+    function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
+    function formatNumber(v) { return Math.floor(v); }
+
+    function updateUI() {
+        hungerFill.style.width = `${hunger}%`;
+        moodFill.style.width = `${mood}%`;
+        sicknessFill.style.width = `${sickness}%`;
+        toiletFill.style.width = `${toilet}%`;
+        disciplineFill.style.width = `${discipline}%`;
+        hungerVal.innerText = formatNumber(hunger);
+        moodVal.innerText = formatNumber(mood);
+        sicknessVal.innerText = formatNumber(sickness);
+        toiletVal.innerText = formatNumber(toilet);
+        disciplineVal.innerText = formatNumber(discipline);
+
+        let statusIcon = "🐱";
+        if (isSleeping) statusIcon = "😴";
+        else if (sickness >= 70) statusIcon = "😿";
+        else if (sickness >= 30) statusIcon = "🤒";
+        else if (mood <= 20) statusIcon = "😾";
+        else if (mood <= 50) statusIcon = "😐";
+        else if (hunger <= 20) statusIcon = "🍽️";
+        else if (toilet >= 85) statusIcon = "💩";
+        else statusIcon = "😺";
+        statusEmoji.innerText = statusIcon;
+    }
+
+    function updateAgeDisplay() {
+        const diffMs = Date.now() - birthTime;
+        const totalMinutes = Math.floor(diffMs / (1000 * 60));
+        const days = Math.floor(totalMinutes / (24 * 60));
+        const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+        const minutes = totalMinutes % 60;
+        ageDisplay.innerHTML = `🐱 ${days} дн. ${hours} ч. ${minutes} мин.`;
+    }
+
+    function setButtonsEnabled(enabled) {
+        [feedBtn, playBtn, healBtn, toiletBtn, praiseBtn].forEach(btn => btn.disabled = !enabled);
+        resetBtn.disabled = false;
+    }
+
+    function startWalkingAnimation() {
+        if (walkingInterval) clearInterval(walkingInterval);
+        if (!walkingContainer) return;
+        if (isSleeping) {
+            walkingCatSpan.innerText = "😴";
+            walkingCatSpan.style.left = "0px";
+            walkingCatSpan.style.top = "0px";
+            return;
+        }
+        walkingCatSpan.innerText = currentSkin;
+        walkingCatSpan.style.transition = "left 0.3s ease, top 0.3s ease";
+        walkingInterval = setInterval(() => {
+            if (isSleeping) return;
+            const rect = walkingContainer.getBoundingClientRect();
+            const maxX = Math.max(0, rect.width - 60);
+            const maxY = Math.max(0, rect.height - 60);
+            walkingCatSpan.style.left = `${Math.random() * maxX}px`;
+            walkingCatSpan.style.top = `${Math.random() * maxY}px`;
+        }, 2000);
+    }
+
+    function stopWalkingAnimation() {
+        if (walkingInterval) clearInterval(walkingInterval);
+        walkingCatSpan.innerText = "😴";
+    }
+
+    function getRandomAwakeDuration() { return (Math.random() * 15 + 5) * 60 * 1000; }
+    function getRandomSleepDuration() { return (Math.random() * 6 + 2) * 60 * 1000; }
+
+    function startSleep(duration = null) {
+        if (isSleeping) return;
+        updateStateTimers();
+        const sleepDuration = duration !== null ? duration : getRandomSleepDuration();
+        sleepEndTime = Date.now() + sleepDuration;
+        isSleeping = true;
+        setButtonsEnabled(false);
+        sleepStateText.innerText = '💤 СПИТ';
+        updateUI();
+        stopWalkingAnimation();
+        sleepCycleCount++;
+        checkAchievements();
+        if (window.nextAwakeTimeout) clearTimeout(window.nextAwakeTimeout);
+        window.sleepTimeout = setTimeout(() => wakeUp(), sleepDuration);
+        saveToLocalStorage();
+        updateAchievementsProgress();
+    }
+
+    function wakeUp() {
+        if (!isSleeping) return;
+        updateStateTimers();
+        isSleeping = false;
+        if (window.sleepTimeout) clearTimeout(window.sleepTimeout);
+        setButtonsEnabled(true);
+        sleepStateText.innerText = '🐾 БОДРСТВУЕТ';
+        updateUI();
+        startWalkingAnimation();
+        const awakeDuration = getRandomAwakeDuration();
+        nextAwakeEndTime = Date.now() + awakeDuration;
+        if (window.nextAwakeTimeout) clearTimeout(window.nextAwakeTimeout);
+        window.nextAwakeTimeout = setTimeout(() => startSleep(), awakeDuration);
+        saveToLocalStorage();
+        checkAchievements();
+        updateAchievementsProgress();
+    }
+
+    function degradeStats() {
+        if (isSleeping) return;
+        hunger = clamp(hunger - 1, 0, 100);
+        mood = clamp(mood - 1, 0, 100);
+        toilet = clamp(toilet + 1, 0, 100);
+        discipline = clamp(discipline - 0.2, 0, 100);
+        let sicknessDelta = 0;
+        if (hunger <= 20 || mood <= 20 || toilet >= 85) sicknessDelta = 0.6;
+        else if (sickness > 0) sicknessDelta = -0.3;
+        if (discipline < 30) sicknessDelta += 0.2;
+        sickness = clamp(sickness + sicknessDelta, 0, 100);
+        if (sickness >= 70) { hunger = clamp(hunger - 0.3, 0, 100); mood = clamp(mood - 0.4, 0, 100); }
+        if (toilet > 95) mood = clamp(mood - 1, 0, 100);
+        hunger = Math.floor(hunger * 10) / 10;
+        mood = Math.floor(mood * 10) / 10;
+        sickness = Math.floor(sickness * 10) / 10;
+        toilet = Math.floor(toilet * 10) / 10;
+        discipline = Math.floor(discipline * 10) / 10;
+        updateUI();
+        saveToLocalStorage();
+        checkAchievements();
+        updateAchievementsProgress();
+    }
+
+    function feed() { if (!isSleeping) { hunger = clamp(hunger + 22, 0, 100); mood = clamp(mood + 3, 0, 100); feedCount++; totalActions++; updateUI(); saveToLocalStorage(); checkAchievements(); updateAchievementsProgress(); } }
+    function play() { if (!isSleeping) { mood = clamp(mood + 20, 0, 100); hunger = clamp(hunger - 1, 0, 100); toilet = clamp(toilet - 1, 0, 100); playCount++; totalActions++; updateUI(); saveToLocalStorage(); checkAchievements(); updateAchievementsProgress(); } }
+    function heal() { if (!isSleeping) { sickness = clamp(sickness - 35, 0, 100); mood = clamp(mood + 5, 0, 100); healCount++; totalActions++; updateUI(); saveToLocalStorage(); checkAchievements(); updateAchievementsProgress(); } }
+    function useToilet() { if (!isSleeping) { toilet = clamp(toilet - 45, 0, 100); mood = clamp(mood + 4, 0, 100); toiletCount++; totalActions++; updateUI(); saveToLocalStorage(); checkAchievements(); updateAchievementsProgress(); } }
+    function praise() { if (!isSleeping) { discipline = clamp(discipline + 18, 0, 100); mood = clamp(mood + 5, 0, 100); praiseCount++; totalActions++; updateUI(); saveToLocalStorage(); checkAchievements(); updateAchievementsProgress(); } }
+
+    function resetGame() {
+        if (window.sleepTimeout) clearTimeout(window.sleepTimeout);
+        if (window.nextAwakeTimeout) clearTimeout(window.nextAwakeTimeout);
+        if (walkingInterval) clearInterval(walkingInterval);
+        isSleeping = false;
+        setButtonsEnabled(true);
+        hunger = 80; mood = 80; sickness = 0; toilet = 20; discipline = 50;
+        birthTime = Date.now();
+        feedCount = 0; playCount = 0; healCount = 0; toiletCount = 0; praiseCount = 0; totalActions = 0;
+        totalSleepTimeMs = 0; totalAwakeTimeMs = 0; sleepCycleCount = 0; lastStateChangeTime = Date.now();
+        achievements.forEach(a => { a.completed = false; a.date = null; });
+        saveAchievements();
+        const awakeDuration = getRandomAwakeDuration();
+        nextAwakeEndTime = Date.now() + awakeDuration;
+        window.nextAwakeTimeout = setTimeout(() => startSleep(), awakeDuration);
+        sleepStateText.innerText = '🐾 БОДРСТВУЕТ';
+        startWalkingAnimation();
+        updateUI(); updateAgeDisplay();
+        saveToLocalStorage();
+        checkAchievements();
+        renderAchievementsList();
+        updateAchievementsProgress();
+    }
+
+    function saveToLocalStorage() {
+        const state = { hunger, mood, sickness, toilet, discipline, birthTime, catName, isSleeping, sleepEndTime: isSleeping ? sleepEndTime : null, nextAwakeEndTime: (!isSleeping && nextAwakeEndTime) ? nextAwakeEndTime : null, feedCount, playCount, healCount, toiletCount, praiseCount, totalActions, totalSleepTimeMs, totalAwakeTimeMs, sleepCycleCount, lastStateChangeTime, lastSaveTime: Date.now() };
+        localStorage.setItem('tamagotchi_cat_final_v5', JSON.stringify(state));
+        lastSaveTime = Date.now();
+    }
+
+    function loadFromLocalStorage() {
+        const saved = localStorage.getItem('tamagotchi_cat_final_v5');
+        if (!saved) return false;
+        try {
+            const state = JSON.parse(saved);
+            hunger = state.hunger ?? 80; mood = state.mood ?? 80; sickness = state.sickness ?? 0; toilet = state.toilet ?? 20; discipline = state.discipline ?? 50;
+            birthTime = state.birthTime ?? Date.now(); catName = state.catName ?? "Мурзик"; catNameDisplay.innerText = catName;
+            feedCount = state.feedCount ?? 0; playCount = state.playCount ?? 0; healCount = state.healCount ?? 0; toiletCount = state.toiletCount ?? 0; praiseCount = state.praiseCount ?? 0; totalActions = state.totalActions ?? 0;
+            totalSleepTimeMs = state.totalSleepTimeMs ?? 0; totalAwakeTimeMs = state.totalAwakeTimeMs ?? 0; sleepCycleCount = state.sleepCycleCount ?? 0; lastStateChangeTime = state.lastStateChangeTime ?? Date.now();
+            isSleeping = state.isSleeping ?? false; const savedSleepEnd = state.sleepEndTime; const savedAwakeEnd = state.nextAwakeEndTime;
+            lastSaveTime = state.lastSaveTime ?? Date.now();
+            if (window.sleepTimeout) clearTimeout(window.sleepTimeout); if (window.nextAwakeTimeout) clearTimeout(window.nextAwakeTimeout);
+            const now = Date.now();
+            if (isSleeping && savedSleepEnd) { const remaining = savedSleepEnd - now; if (remaining > 0) startSleep(remaining); else { isSleeping = false; wakeUp(); } }
+            else if (!isSleeping && savedAwakeEnd) { const remainingAwake = savedAwakeEnd - now; if (remainingAwake > 0) { nextAwakeEndTime = savedAwakeEnd; window.nextAwakeTimeout = setTimeout(() => startSleep(), remainingAwake); setButtonsEnabled(true); sleepStateText.innerText = '🐾 БОДРСТВУЕТ'; startWalkingAnimation(); } else startSleep(); }
+            else { if (!isSleeping) { const awakeDuration = getRandomAwakeDuration(); nextAwakeEndTime = Date.now() + awakeDuration; window.nextAwakeTimeout = setTimeout(() => startSleep(), awakeDuration); setButtonsEnabled(true); sleepStateText.innerText = '🐾 БОДРСТВУЕТ'; startWalkingAnimation(); } else startSleep(); }
+            updateUI(); updateAgeDisplay();
+            applyOfflineProgress();
+            return true;
+        } catch(e) { return false; }
+    }
+
+    function editName() {
+        const input = document.createElement('input');
+        input.value = catName;
+        input.className = 'name-input';
+        const parent = catNameDisplay.parentNode;
+        parent.replaceChild(input, catNameDisplay);
+        input.focus();
+        input.addEventListener('blur', () => {
+            let newName = input.value.trim();
+            if (!newName) newName = "Мурзик";
+            catName = newName;
+            const newSpan = document.createElement('span');
+            newSpan.className = 'cat-name';
+            newSpan.id = 'catNameDisplay';
+            newSpan.innerText = catName;
+            parent.replaceChild(newSpan, input);
+            saveToLocalStorage();
+        });
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') input.blur(); });
+    }
+
+    function updateRealTime() {
+        const now = new Date();
+        document.getElementById('liveClock').innerText = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+        updateAgeDisplay();
+    }
+
+    function startDegradeInterval() {
+        if (degradeInterval) clearInterval(degradeInterval);
+        degradeInterval = setInterval(() => { degradeStats(); }, 15 * 60 * 1000);
+    }
+
+    function init() {
+        achievements = generateAchievements();
+        loadAchievements();
+        loadSkinAndBg();          // загружаем сохранённый скин и фон
+        startDegradeInterval();
+        clockInterval = setInterval(updateRealTime, 1000);
+        updateRealTime();
+        if (!loadFromLocalStorage()) {
+            const awakeDuration = getRandomAwakeDuration();
+            nextAwakeEndTime = Date.now() + awakeDuration;
+            window.nextAwakeTimeout = setTimeout(() => startSleep(), awakeDuration);
+            setButtonsEnabled(true);
+            sleepStateText.innerText = '🐾 БОДРСТВУЕТ';
+            startWalkingAnimation();
+            updateUI();
+        }
+        lastStateChangeTime = Date.now();
+        feedBtn.onclick = feed; playBtn.onclick = play; healBtn.onclick = heal; toiletBtn.onclick = useToilet; praiseBtn.onclick = praise; resetBtn.onclick = resetGame;
+        editNameBtn.onclick = editName;
+        changeSkinBtn.onclick = cycleSkin;
+        changeBgBtn.onclick = cycleBackground;
+        achievementsToggleBtn.onclick = () => achievementsPanel.classList.toggle('open');
+        checkAchievements();
+        updateAchievementsProgress();
+    }
+    init();
+</script>
+</body>
+</html>
